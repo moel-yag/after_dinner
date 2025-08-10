@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   utils2.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: moel-yag <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: moel-yag <moel-yag@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 12:41:36 by moel-yag          #+#    #+#             */
-/*   Updated: 2025/08/07 12:41:36 by moel-yag         ###   ########.fr       */
+/*   Updated: 2025/08/10 16:23:35 by moel-yag         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,24 +40,11 @@ int	ft_getc(FILE *stream)
 	return (c);
 }
 
-char	*handle_heredoc(char *delimiter)
+static char	*heredoc_loop(char *delimiter, bool flag)
 {
-	bool	flag;
-
 	char *(file), *(line), *(tmp), *(expanded);
-	flag = true;
-	if (delimiter[0] == '\'' || delimiter[0] == '\"')
-	{
-		delimiter = remove_outer_quotes(delimiter);
-		printf("%s\n", delimiter);
-		flag = false;
-	}
-	(void)(flag);
 	file = NULL;
 	line = NULL;
-	rl_getc_function = ft_getc;
-	*ft_sigint_track() = 0;
-	signal(SIGINT, ft_sigint_handler);
 	while (1)
 	{
 		line = readline("> ");
@@ -67,7 +54,6 @@ char	*handle_heredoc(char *delimiter)
 			break ;
 		if (flag && line)
 		{
-			// expanded = NULL;
 			expanded = expand_arg(line, g_data.env_list);
 			if (expanded)
 			{
@@ -76,10 +62,27 @@ char	*handle_heredoc(char *delimiter)
 			}
 		}
 		tmp = ft_strjoin3(file, line, "\n");
-		free(file);
+		(free(line), free(file));
 		file = tmp;
-		free(line);
 	}
-	return (free(line), rl_getc_function = rl_getc, signal(SIGINT, SIG_IGN)
-		, file);
+	return (free(line), file);
+}
+
+char	*handle_heredoc(char *delimiter)
+{
+	bool	flag;
+	char	*file;
+
+	flag = true;
+	if (delimiter[0] == '\'' || delimiter[0] == '\"')
+	{
+		delimiter = remove_outer_quotes(delimiter);
+		printf("%s\n", delimiter);
+		flag = false;
+	}
+	rl_getc_function = ft_getc;
+	*ft_sigint_track() = 0;
+	signal(SIGINT, ft_sigint_handler);
+	file = heredoc_loop(delimiter, flag);
+	return (rl_getc_function = rl_getc, signal(SIGINT, SIG_IGN), file);
 }
